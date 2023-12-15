@@ -11,13 +11,14 @@ export const getBlogPost: RequestHandler = async (req, res, next) => {
 
         res.status(200).json(allBlogPosts)
     } catch (err) {
+        console.error(err)
         res.status(500).json({err})
 
         // next(err)
     }
 }
 
-type BlogPostT = {
+type BlogPost = {
     slug: string
     title: string
     summary: string
@@ -27,7 +28,7 @@ type BlogPostT = {
 export const createBlogPost: RequestHandler< //defining the request's body is on the 3rd parameter.
     unknown,
     unknown,
-    BlogPostT,
+    BlogPost,
     unknown
 > = async (req, res, next) => {
     try {
@@ -35,7 +36,8 @@ export const createBlogPost: RequestHandler< //defining the request's body is on
 
         res.status(201).json(newBlogPost)
     } catch (err) {
-        res.status(500).json({err})
+        console.error(err)
+        res.status(500).json({err, bruh:'bruh'})
         // next(err)
     }
 }
