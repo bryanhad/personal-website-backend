@@ -1,10 +1,11 @@
 import 'dotenv/config'
 import express from 'express';
+import blogPostRoutes from './routes/blog-post.routes'
 
 const app = express()
 
-app.get('/', (req, res) => {
-    res.send('Hello my brother! This is from the server of porta 5000!')
-})
+app.use(express.json()) // parse incoming json!
+
+app.use('/posts', blogPostRoutes)
 
 export default app;
