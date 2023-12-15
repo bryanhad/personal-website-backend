@@ -9,17 +9,14 @@ const blogPostSchema = new Schema({
     title: {
         type: String,
         required:true,
-        unique:true
     },
     summary: {
         type: String,
         required:true,
-        unique:true
     },
     body: {
         type: String,
         required:true,
-        unique:true
     },
 }, {
     timestamps: true //this is mongoose feature! mongoose will automatically add createdAt and updatedAt timestamps to our schema!
