@@ -5,6 +5,7 @@ import assertIsDefined from '../utils/assertIsDefined'
 import mongoose from 'mongoose'
 import sharp from 'sharp'
 import env from '../env'
+import createHttpError from 'http-errors'
 
 export const getBlogPost: RequestHandler = async (req, res, next) => {
     //the reason we use a const and not a function, is cuz we can define the function this way! this way, req, res, and next will automatically get the correct typing!
@@ -16,22 +17,18 @@ export const getBlogPost: RequestHandler = async (req, res, next) => {
         // it is only for us to be able to use async await! noice.
         res.status(200).json(allBlogPosts)
     } catch (err) {
-        console.error(err)
-        res.status(500).json({ err })
-
-        // next(err)
+        next(err)
     }
 }
 
 export const getAllBlogPostSlug: RequestHandler = async (req, res, next) => {
     try {
         const results = await BlogPostModel.find().select('slug').exec()
-        const slugs = results.map(blog => blog.slug)
+        const slugs = results.map((blog) => blog.slug)
 
         res.status(200).json(slugs)
     } catch (err) {
-        console.error(err)
-        res.status(500).json({ err })
+        next(err)
     }
 }
 
@@ -41,12 +38,14 @@ export const getBlogPostBySlug: RequestHandler = async (req, res, next) => {
             slug: req.params.slug,
         }).exec()
 
-        if (!blog) return res.sendStatus(404) //send status is if u only want to send the status without a body!
+        if (!blog) {
+            throw createHttpError(404, 'No blog post found for this slug')
+            //createHttpError is from the package http-erros
+        }
 
         res.status(200).json(blog)
     } catch (err) {
-        console.error(err)
-        res.status(500).json({ err })
+        next(err)
     }
 }
 
@@ -64,11 +63,19 @@ export const createBlogPost: RequestHandler<
     BlogPost,
     unknown
 > = async (req, res, next) => {
+
     const blogImage = req.file // multer automatically appends the file key to the request, but the compiler doesn't know if we actually append it, so we have to check if the value is indeed not null or not undefined.
+
     try {
         assertIsDefined(blogImage)
 
-        //we need the blogImage to be saved with the same id as the blog ID!
+        const slugExists = await blogPostModel.findOne({slug: req.body.slug}).exec()
+
+        if (slugExists) {
+            throw createHttpError(409, 'Slug already taken. Please choose a different one')
+        }
+
+        //we need the blogImage to be saved with the same id as the blog ID! so, we have to assign the id ourselve!
         const blogPostId = new mongoose.Types.ObjectId()
 
         const blogImageDestinationPath =
@@ -86,8 +93,6 @@ export const createBlogPost: RequestHandler<
 
         res.status(201).json(newBlogPost)
     } catch (err) {
-        console.error(err)
-        res.status(500).json({ err, bruh: 'bruh' })
-        // next(err)
+        next(err)
     }
 }

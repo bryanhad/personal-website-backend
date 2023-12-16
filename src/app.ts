@@ -4,6 +4,8 @@ import blogPostRoutes from './routes/blog-post.routes'
 import cors from 'cors'
 import env from './env'
 import morgan from 'morgan'
+import errorHandler from './middlewares/errorHandler'
+import createHttpError from 'http-errors'
 
 const app = express()
 
@@ -14,5 +16,9 @@ app.use(express.json()) // parse incoming json!
 app.use('/uploads/blog-images', express.static('uploads/blog-images')) //this allows us to serve our images in the 'uploads/blog-images/' through the url directly! cool!
 
 app.use('/posts', blogPostRoutes)
+
+app.use((req, res, next) => next(createHttpError(404, 'Endpoint not found'))) // just a catch all basically
+
+app.use(errorHandler)
 
 export default app
