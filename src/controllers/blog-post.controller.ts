@@ -1,6 +1,10 @@
 import { RequestHandler } from 'express' // for defining express request handler.
 import BlogPostModel from '../models/blog-post.model'
 import blogPostModel from '../models/blog-post.model'
+import assertIsDefined from '../utils/assertIsDefined'
+import mongoose from 'mongoose'
+import sharp from 'sharp'
+import env from '../env'
 
 export const getBlogPost: RequestHandler = async (req, res, next) => {
     //the reason we use a const and not a function, is cuz we can define the function this way! this way, req, res, and next will automatically get the correct typing!
@@ -33,8 +37,25 @@ export const createBlogPost: RequestHandler<
     BlogPost,
     unknown
 > = async (req, res, next) => {
+    const blogImage = req.file // multer automatically appends the file key to the request, but the compiler doesn't know if we actually append it, so we have to check if the value is indeed not null or not undefined.
     try {
-        const newBlogPost = await blogPostModel.create(req.body)
+        assertIsDefined(blogImage)
+
+        //we need the blogImage to be saved with the same id as the blog ID!
+        const blogPostId = new mongoose.Types.ObjectId()
+
+        const blogImageDestinationPath =
+            '/uploads/blog-images/' + blogPostId + '.png' //this tells about where we will save the image in our server
+
+        await sharp(blogImage.buffer)
+            .resize(700, 450) //we resize the image to w:700, and h:450
+            .toFile('./' + blogImageDestinationPath) //store the image in our file system
+
+        const newBlogPost = await blogPostModel.create({
+            _id: blogPostId,
+            ...req.body,
+            blogImage: env.SERVER_URL + blogImageDestinationPath,
+        })
 
         res.status(201).json(newBlogPost)
     } catch (err) {
