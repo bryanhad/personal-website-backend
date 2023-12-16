@@ -10,4 +10,10 @@ router
     // the .single('string') represents a single prop in the request body with the string as the req.body's key that will be looked into. So our frontend has to send a req.body that has an 'image' key in it.
     .post(imageUpload.single('blogImage'), BlogPostsController.createBlogPost)
 
+router.get('/slugs', BlogPostsController.getAllBlogPostSlug)
+
+router
+    .route('/post/:slug')
+    .get(BlogPostsController.getBlogPostBySlug)
+
 export default router

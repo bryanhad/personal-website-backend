@@ -23,6 +23,33 @@ export const getBlogPost: RequestHandler = async (req, res, next) => {
     }
 }
 
+export const getAllBlogPostSlug: RequestHandler = async (req, res, next) => {
+    try {
+        const results = await BlogPostModel.find().select('slug').exec()
+        const slugs = results.map(blog => blog.slug)
+
+        res.status(200).json(slugs)
+    } catch (err) {
+        console.error(err)
+        res.status(500).json({ err })
+    }
+}
+
+export const getBlogPostBySlug: RequestHandler = async (req, res, next) => {
+    try {
+        const blog = await BlogPostModel.findOne({
+            slug: req.params.slug,
+        }).exec()
+
+        if (!blog) return res.sendStatus(404) //send status is if u only want to send the status without a body!
+
+        res.status(200).json(blog)
+    } catch (err) {
+        console.error(err)
+        res.status(500).json({ err })
+    }
+}
+
 type BlogPost = {
     slug: string
     title: string
