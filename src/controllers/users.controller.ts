@@ -38,8 +38,12 @@ export const signUp: RequestHandler<
 
         const newUser = result.toObject() // we make the result of the user createdby usermodel to be plain ol' JS object, cuz we want to remove the password!
         delete newUser.password
+ 
+        req.logIn(newUser, err => { //login would pass the first argument, which is a user objet that has a _id key on it, and would be passed to the passport's deserializeUser! it would get the session from the db, and append an Id key to the 
+            if (err) throw err
+            res.status(201).json(newUser)
+        }) //this req.login function is added by passport!
 
-        res.status(201).json(newUser)
 
     } catch (err) {
         next(err)

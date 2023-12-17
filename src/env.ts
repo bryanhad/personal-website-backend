@@ -8,6 +8,7 @@ const env = cleanEnv(process.env, {
     PORT: port(),
     WEBSITE_URL: str(),
     SERVER_URL: str(),
+    SESSION_SECRET: str()
 })
 
 export default env
