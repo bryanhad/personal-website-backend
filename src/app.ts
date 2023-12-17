@@ -21,7 +21,7 @@ app.use(cors({
 })) //now the backend is accessible to our frontend's url!
 app.use(express.json()) // parse incoming json!
 app.use(session(sessionConfig)) //this lets us save our session to our database (currently using mongo, but later we gonna use redis in our server)
-app.use(passport.authenticate('session')) //this activates passport, and makes it use express session to store user sessions to our databse
+app.use(passport.authenticate('session')) //this activates passport, and on every request to the backend, passport will fetch the user's session from the db, and then call thee deserializeUser
 
 app.use('/uploads/blog-images', express.static('uploads/blog-images')) //this allows us to serve our images in the 'uploads/blog-images/' through the url directly! cool!
 

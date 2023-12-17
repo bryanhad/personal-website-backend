@@ -10,7 +10,7 @@ passport.serializeUser((user, cb) => { //after the user logged in successfuly, t
     cb(null, user._id)
 })
 
-passport.deserializeUser((userId:string, cb) => { //this function purpose is to handle everytime there is a request to the server, passport would get the user's session from our database and will pass the data we stored to the first param of this func, which is 'userId'!, then passport would attach the thing that we return from this deeserializeUser function to the request object!
+passport.deserializeUser((userId:string, cb) => { //this function purpose is to handle everytime there is a request to the server, passport would get the user's session from our database and will pass the data we stored to the first param of this func, which is 'userId'!, then passport would attach the thing that we return from this deeserializeUser function to the request object! in the req.user
     // so that we can use the data from the stored session into our endpoints
 
     cb(null, {_id: new mongoose.Types.ObjectId(userId)})
