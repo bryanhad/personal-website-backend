@@ -15,7 +15,10 @@ import './config/passport' //by importing the file just like this, we can automa
 const app = express()
 
 app.use(morgan('dev')) // better console.logs! helps us to know where is the route that logs something..
-app.use(cors({ origin: env.WEBSITE_URL })) //now the backend is accessible to our frontend's url!
+app.use(cors({ 
+    origin: env.WEBSITE_URL,
+    credentials: true,
+})) //now the backend is accessible to our frontend's url!
 app.use(express.json()) // parse incoming json!
 app.use(session(sessionConfig)) //this lets us save our session to our database (currently using mongo, but later we gonna use redis in our server)
 app.use(passport.authenticate('session')) //this activates passport, and makes it use express session to store user sessions to our databse
