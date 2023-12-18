@@ -1,4 +1,5 @@
 import * as yup from 'yup'
+import { imageFileSchema } from '../utils/validation'
 
 const usernameSchema = yup
     .string()
@@ -23,4 +24,13 @@ export const signUpRequestSchema = yup.object({
 
 export type signUpBody = yup.InferType<typeof signUpRequestSchema>['body'] //this only makes sure that we only extract the body!
 
+export const updateUserRequestSchema = yup.object({
+    body: yup.object({
+        username: usernameSchema,
+        displayName: yup.string().max(20, 'Display name cannot exceed 20 characters'),
+        about: yup.string().max(160, 'About cannot exceed 160 characters'),
+    }),
+    file: imageFileSchema,
+})
 
+export type updateUserBody = yup.InferType<typeof updateUserRequestSchema>['body'] //this only makes sure that we only extract the body!

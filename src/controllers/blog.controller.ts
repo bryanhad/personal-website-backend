@@ -6,12 +6,18 @@ import mongoose from 'mongoose'
 import sharp from 'sharp'
 import env from '../env'
 import createHttpError from 'http-errors'
-import { BlogPost } from '../validation/blog.validation'
+import { BlogPost, GetBlogPostQuery } from '../validation/blog.validation'
 
-export const getBlogPost: RequestHandler = async (req, res, next) => {
+export const getBlogPost: RequestHandler<unknown, unknown, unknown, GetBlogPostQuery> = async (req, res, next) => {
     //the reason we use a const and not a function, is cuz we can define the function this way! this way, req, res, and next will automatically get the correct typing!
+
+    const authorId = req.query.authorId
+
+    const filterOption = authorId ? {author: authorId} : {}
+
     try {
-        const allBlogPosts = await BlogPostModel.find()
+        const allBlogPosts = await BlogPostModel
+            .find(filterOption)
             .sort({ _id: -1 }) // this is the way to sort descending in mongoose! -1
             .populate('author') //this will automatically attach the authors (which is user document) document to the response!
             // so the author key would be populated by the author's data, not the id! nice

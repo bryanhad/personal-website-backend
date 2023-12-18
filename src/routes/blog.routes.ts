@@ -3,11 +3,18 @@ import * as BlogPostsController from '../controllers/blog.controller' // we impo
 import { imageUpload } from '../middlewares/image-upload'
 import mustAuthenticated from '../middlewares/mustAuthenticated'
 import validateRequestSchema from '../middlewares/validateRequestSchema'
-import { createBlogRequestSchema } from '../validation/blog.validation'
+import {
+    createBlogRequestSchema,
+    getBlogPostRequestSchema,
+} from '../validation/blog.validation'
 
 const router = express.Router()
 
-router.get('/', BlogPostsController.getBlogPost)
+router.get(
+    '/',
+    validateRequestSchema(getBlogPostRequestSchema),
+    BlogPostsController.getBlogPost
+)
 
 router.post(
     '/',
