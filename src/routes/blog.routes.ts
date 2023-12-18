@@ -5,15 +5,17 @@ import mustAuthenticated from '../middlewares/mustAuthenticated'
 import validateRequestSchema from '../middlewares/validateRequestSchema'
 import {
     createBlogRequestSchema,
-    getBlogPostRequestSchema,
+    deleteBlogSchema,
+    getBlogPostsRequestSchema,
+    updateBlogRequestSchema,
 } from '../validation/blog.validation'
 
 const router = express.Router()
 
 router.get(
     '/',
-    validateRequestSchema(getBlogPostRequestSchema),
-    BlogPostsController.getBlogPost
+    validateRequestSchema(getBlogPostsRequestSchema),
+    BlogPostsController.getBlogPosts
 )
 
 router.post(
@@ -26,6 +28,21 @@ router.post(
 
 router.get('/slugs', BlogPostsController.getAllBlogPostSlug)
 
-router.route('/post/:slug').get(BlogPostsController.getBlogPostBySlug)
+router.get('/post/:slug', BlogPostsController.getBlogPostBySlug)
+
+router.patch(
+    '/:blogId',
+    mustAuthenticated,
+    imageUpload.single('blogImage'),
+    validateRequestSchema(updateBlogRequestSchema),
+    BlogPostsController.updateBlog
+)
+
+router.delete(
+    ':/blogId',
+    mustAuthenticated,
+    validateRequestSchema(deleteBlogSchema),
+    BlogPostsController.deleteBlog
+)
 
 export default router

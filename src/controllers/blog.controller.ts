@@ -4,14 +4,20 @@ import mongoose from 'mongoose'
 import sharp from 'sharp'
 import env from '../env'
 import createHttpError from 'http-errors'
-import { BlogPost, GetBlogPostQuery } from '../validation/blog.validation'
+import {
+    BlogPost,
+    DeleteBlogParams,
+    GetBlogPostsQuery,
+    UpdateBlogParams,
+} from '../validation/blog.validation'
 import blogPostModel from '../models/blog-post.model'
+import fs from 'fs'
 
-export const getBlogPost: RequestHandler<
+export const getBlogPosts: RequestHandler<
     unknown,
     unknown,
     unknown,
-    GetBlogPostQuery
+    GetBlogPostsQuery
 > = async (req, res, next) => {
     //the reason we use a const and not a function, is cuz we can define the function this way! this way, req, res, and next will automatically get the correct typing!
 
@@ -122,6 +128,100 @@ export const createBlogPost: RequestHandler<
         })
 
         res.status(201).json(newBlogPost)
+    } catch (err) {
+        next(err)
+    }
+}
+
+export const updateBlog: RequestHandler<
+    UpdateBlogParams,
+    unknown,
+    BlogPost,
+    unknown
+> = async (req, res, next) => {
+    const { blogId } = req.params //see? the benefit of using yup's schema is that now the blogId type is string! 
+    // just a reminder, we handle the validation of the request object to this endpoint from the middleware, by using our UpdateBlogRequestSchema, but that still doesn't tell the compiler about the typings in this request handler,
+    // so we still have to pass in the types manually like the above where we define the typings for our RequestHandler..
+    const { slug, title, body, summary } = req.body
+    const blogImage = req.file
+    const authenticatedUser = req.user
+
+    try {
+        assertIsDefined(authenticatedUser)
+
+        const blogToBeEdited = await blogPostModel.findById(blogId).exec()
+
+        if (!blogToBeEdited) {
+            throw createHttpError(404, 'Blog post not found')
+        }
+
+        // here, we use special equals method to check between two object Ids
+        if (!blogToBeEdited.author.equals(authenticatedUser._id)) {
+            throw createHttpError(401, 'You are not the author of this blog')
+        }
+
+        blogToBeEdited.slug = slug
+        blogToBeEdited.title = title
+        blogToBeEdited.summary = summary
+        blogToBeEdited.body = body
+
+        if (blogImage) {
+            const blogImageDestinationPath =
+                '/uploads/blog-images/' + blogId + '.png' //this tells about where we will save the image in our server
+
+            await sharp(blogImage.buffer)
+                .resize(700, 450) //we resize the image to w:700, and h:450
+                .toFile('./' + blogImageDestinationPath) //store the image in our file system
+
+            blogToBeEdited.blogImage =
+                env.SERVER_URL +
+                blogImageDestinationPath +
+                '?lastUpdated=' +
+                Date.now()
+            // it is necessary to add the query of something unique, so that the browser would load the updated image even though the name is the same!
+        }
+
+        await blogToBeEdited.save()
+
+        res.sendStatus(200)
+    } catch (err) {
+        next(err)
+    }
+}
+
+export const deleteBlog: RequestHandler<DeleteBlogParams> = async (
+    req,
+    res,
+    next
+) => {
+    const { blogId } = req.params
+    const authenticatedUser = req.user
+
+    try {
+        assertIsDefined(authenticatedUser)
+
+        const toBeDeletedBlog = await blogPostModel.findById(blogId).exec()
+
+        if (!toBeDeletedBlog) {
+            throw createHttpError(404, 'Blog post not found')
+        }
+
+        if (!toBeDeletedBlog.author.equals(authenticatedUser._id)) {
+            throw createHttpError(401, 'You are not the owner of this blog')
+        }
+
+        if (toBeDeletedBlog.blogImage.startsWith(env.SERVER_URL)) {
+            //search the blog's image and we want to delete it also! no need to save unused images in our server~
+            const imagePath = toBeDeletedBlog.blogImage
+                .split(env.SERVER_URL)[1] //we don't need the first parth of https:blabla.. we only want the subdir part
+                .split('?')[0] //remove the query if there is any.. cuz we only need the path of the image! 
+                // remember that the query only is there on the database, not on our server
+            fs.unlinkSync('.' + imagePath) //removes a file in the file system. native to nodejs
+        }
+
+        await toBeDeletedBlog.deleteOne()
+
+        res.sendStatus(204) //204 for resource has successfully been deleted
     } catch (err) {
         next(err)
     }
