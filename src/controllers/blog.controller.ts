@@ -6,6 +6,7 @@ import mongoose from 'mongoose'
 import sharp from 'sharp'
 import env from '../env'
 import createHttpError from 'http-errors'
+import { BlogPost } from '../validation/blog.validation'
 
 export const getBlogPost: RequestHandler = async (req, res, next) => {
     //the reason we use a const and not a function, is cuz we can define the function this way! this way, req, res, and next will automatically get the correct typing!
@@ -50,13 +51,6 @@ export const getBlogPostBySlug: RequestHandler = async (req, res, next) => {
     } catch (err) {
         next(err)
     }
-}
-
-type BlogPost = {
-    slug: string
-    title: string
-    summary: string
-    body: string
 }
 
 export const createBlogPost: RequestHandler<

@@ -3,6 +3,7 @@ import userModel from '../models/user.model'
 import createHttpError from 'http-errors'
 import bcrypt from 'bcrypt'
 import assertIsDefined from '../utils/assertIsDefined'
+import { signUpBody } from '../validation/users.validation'
 
 export const getAuthenticatedUser: RequestHandler = async (req, res, next) => {
     const authenticatedUser = req.user
@@ -21,16 +22,10 @@ export const getAuthenticatedUser: RequestHandler = async (req, res, next) => {
     }
 }
 
-type SignUpBody = {
-    username: string
-    email: string
-    password: string
-}
-
 export const signUp: RequestHandler<
     unknown,
     unknown,
-    SignUpBody,
+    signUpBody,
     unknown
 > = async (req, res, next) => {
     const { username, email, password: rawPassword } = req.body
