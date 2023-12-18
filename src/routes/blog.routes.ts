@@ -39,7 +39,7 @@ router.patch(
 )
 
 router.delete(
-    ':/blogId',
+    '/:blogId',
     mustAuthenticated,
     validateRequestSchema(deleteBlogSchema),
     BlogPostsController.deleteBlog

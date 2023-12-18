@@ -139,7 +139,7 @@ export const updateBlog: RequestHandler<
     BlogPost,
     unknown
 > = async (req, res, next) => {
-    const { blogId } = req.params //see? the benefit of using yup's schema is that now the blogId type is string! 
+    const { blogId } = req.params //see? the benefit of using yup's schema is that now the blogId type is string!
     // just a reminder, we handle the validation of the request object to this endpoint from the middleware, by using our UpdateBlogRequestSchema, but that still doesn't tell the compiler about the typings in this request handler,
     // so we still have to pass in the types manually like the above where we define the typings for our RequestHandler..
     const { slug, title, body, summary } = req.body
@@ -148,6 +148,11 @@ export const updateBlog: RequestHandler<
 
     try {
         assertIsDefined(authenticatedUser)
+
+        const slugExists = await blogPostModel.findOne({slug}).exec()
+        if (slugExists && !slugExists._id.equals(blogId)) { //if the slug exist AND is different one from the targeted blog.. which means other blog already has the slug
+            throw createHttpError(409, 'Slug already taken. Please choose a different one')
+        }
 
         const blogToBeEdited = await blogPostModel.findById(blogId).exec()
 
@@ -214,8 +219,8 @@ export const deleteBlog: RequestHandler<DeleteBlogParams> = async (
             //search the blog's image and we want to delete it also! no need to save unused images in our server~
             const imagePath = toBeDeletedBlog.blogImage
                 .split(env.SERVER_URL)[1] //we don't need the first parth of https:blabla.. we only want the subdir part
-                .split('?')[0] //remove the query if there is any.. cuz we only need the path of the image! 
-                // remember that the query only is there on the database, not on our server
+                .split('?')[0] //remove the query if there is any.. cuz we only need the path of the image!
+            // remember that the query only is there on the database, not on our server
             fs.unlinkSync('.' + imagePath) //removes a file in the file system. native to nodejs
         }
 
