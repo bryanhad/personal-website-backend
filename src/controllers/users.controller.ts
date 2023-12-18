@@ -136,7 +136,9 @@ export const updateUser: RequestHandler<
                 //basically says if the username is truthy, add username:username
                 ...(displayName && {displayName}),
                 ...(about && {about}),
-                ...(profilePic && {profilePicUrl: env.SERVER_URL + profilePicDestinationPath}),
+                ...(profilePic && {profilePicUrl: env.SERVER_URL + profilePicDestinationPath + '?lastUpdated=' + Date.now()}), //now this is a cool trick! before, I faced a problem where the browser doesn't refresh the image even though the image is updated! why? cuz the image name is 100% the same! I still want to keep the name of the saved image same with the authenticatedUserId.png as the name, cuz it allows us to overwrite the previous user's profile pic.. but how can we tell the browser that the image is now updated?!
+
+                // so the solution is to append a query to the url, it doesn't really matter what u put, just be sure that every upload will result the query to have different value! here, I use Date.now()..
             }
         }, { new: true }).exec() //the configuration of {new:true} just tells the findByIdAndUpdate to return the user's state after the update! cuz by default, it returns the user's state before the update lel :D
 
