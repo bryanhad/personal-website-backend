@@ -12,6 +12,8 @@ export const getBlogPost: RequestHandler = async (req, res, next) => {
     try {
         const allBlogPosts = await BlogPostModel.find()
             .sort({ _id: -1 }) // this is the way to sort descending in mongoose! -1
+            .populate('author') //this will automatically attach the authors (which is user document) document to the response!
+            // so the author key would be populated by the author's data, not the id! nice
             .exec() //executes the function and returns a promise
         // if you want to use good ol' callback, well you can omit the exec,
         // it is only for us to be able to use async await! noice.
@@ -34,9 +36,10 @@ export const getAllBlogPostSlug: RequestHandler = async (req, res, next) => {
 
 export const getBlogPostBySlug: RequestHandler = async (req, res, next) => {
     try {
-        const blog = await BlogPostModel.findOne({
-            slug: req.params.slug,
-        }).exec()
+        const blog = await BlogPostModel
+            .findOne({slug: req.params.slug,})
+            .populate('author')
+            .exec()
 
         if (!blog) {
             throw createHttpError(404, 'No blog post found for this slug')
@@ -65,9 +68,11 @@ export const createBlogPost: RequestHandler<
 > = async (req, res, next) => {
 
     const blogImage = req.file // multer automatically appends the file key to the request, but the compiler doesn't know if we actually append it, so we have to check if the value is indeed not null or not undefined.
+    const authenticatedUser = req.user
 
     try {
         assertIsDefined(blogImage)
+        assertIsDefined(authenticatedUser)
 
         const slugExists = await blogPostModel.findOne({slug: req.body.slug}).exec()
 
@@ -89,6 +94,7 @@ export const createBlogPost: RequestHandler<
             _id: blogPostId,
             ...req.body,
             blogImage: env.SERVER_URL + blogImageDestinationPath,
+            author: authenticatedUser._id
         })
 
         res.status(201).json(newBlogPost)

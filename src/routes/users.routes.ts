@@ -1,10 +1,11 @@
 import express from 'express'
 import * as UsersController from '../controllers/users.controller'
 import passport from 'passport'
+import mustAuthenticated from '../middlewares/mustAuthenticated'
 
 const router = express.Router()
 
-router.get('/me', UsersController.getAuthenticatedUser)
+router.get('/me', mustAuthenticated, UsersController.getAuthenticatedUser)
 
 router.post('/signup', UsersController.signUp)
 
