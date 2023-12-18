@@ -1,30 +1,50 @@
 import { RequestHandler } from 'express' // for defining express request handler.
-import BlogPostModel from '../models/blog-post.model'
-import blogPostModel from '../models/blog-post.model'
 import assertIsDefined from '../utils/assertIsDefined'
 import mongoose from 'mongoose'
 import sharp from 'sharp'
 import env from '../env'
 import createHttpError from 'http-errors'
 import { BlogPost, GetBlogPostQuery } from '../validation/blog.validation'
+import blogPostModel from '../models/blog-post.model'
 
-export const getBlogPost: RequestHandler<unknown, unknown, unknown, GetBlogPostQuery> = async (req, res, next) => {
+export const getBlogPost: RequestHandler<
+    unknown,
+    unknown,
+    unknown,
+    GetBlogPostQuery
+> = async (req, res, next) => {
     //the reason we use a const and not a function, is cuz we can define the function this way! this way, req, res, and next will automatically get the correct typing!
 
     const authorId = req.query.authorId
+    const page = Number(req.query.page || '1')
+    const pageSize = 6
 
-    const filterOption = authorId ? {author: authorId} : {}
+    const filterOption = authorId ? { author: authorId } : {}
 
     try {
-        const allBlogPosts = await BlogPostModel
+        const getQueriedBlogs = blogPostModel
             .find(filterOption)
             .sort({ _id: -1 }) // this is the way to sort descending in mongoose! -1
+            .limit(pageSize)
+            .skip((page - 1) * pageSize)
             .populate('author') //this will automatically attach the authors (which is user document) document to the response!
             // so the author key would be populated by the author's data, not the id! nice
             .exec() //executes the function and returns a promise
         // if you want to use good ol' callback, well you can omit the exec,
         // it is only for us to be able to use async await! noice.
-        res.status(200).json(allBlogPosts)
+
+        const countQueriedBlogs = blogPostModel
+            .countDocuments(filterOption)
+            .exec() //count the documents so we get the info about how many pages there are
+
+        const [blogPosts, totalResults] = await Promise.all([
+            getQueriedBlogs,
+            countQueriedBlogs,
+        ])
+
+        const totalPages = Math.ceil(totalResults / pageSize)
+
+        res.status(200).json({ blogPosts, page, totalPages })
     } catch (err) {
         next(err)
     }
@@ -32,7 +52,7 @@ export const getBlogPost: RequestHandler<unknown, unknown, unknown, GetBlogPostQ
 
 export const getAllBlogPostSlug: RequestHandler = async (req, res, next) => {
     try {
-        const results = await BlogPostModel.find().select('slug').exec()
+        const results = await blogPostModel.find().select('slug').exec()
         const slugs = results.map((blog) => blog.slug)
 
         res.status(200).json(slugs)
@@ -43,8 +63,8 @@ export const getAllBlogPostSlug: RequestHandler = async (req, res, next) => {
 
 export const getBlogPostBySlug: RequestHandler = async (req, res, next) => {
     try {
-        const blog = await BlogPostModel
-            .findOne({slug: req.params.slug,})
+        const blog = await blogPostModel
+            .findOne({ slug: req.params.slug })
             .populate('author')
             .exec()
 
@@ -66,7 +86,6 @@ export const createBlogPost: RequestHandler<
     BlogPost,
     unknown
 > = async (req, res, next) => {
-
     const blogImage = req.file // multer automatically appends the file key to the request, but the compiler doesn't know if we actually append it, so we have to check if the value is indeed not null or not undefined.
     const authenticatedUser = req.user
 
@@ -74,10 +93,15 @@ export const createBlogPost: RequestHandler<
         assertIsDefined(blogImage)
         assertIsDefined(authenticatedUser)
 
-        const slugExists = await blogPostModel.findOne({slug: req.body.slug}).exec()
+        const slugExists = await blogPostModel
+            .findOne({ slug: req.body.slug })
+            .exec()
 
         if (slugExists) {
-            throw createHttpError(409, 'Slug already taken. Please choose a different one')
+            throw createHttpError(
+                409,
+                'Slug already taken. Please choose a different one'
+            )
         }
 
         //we need the blogImage to be saved with the same id as the blog ID! so, we have to assign the id ourselve!
@@ -94,7 +118,7 @@ export const createBlogPost: RequestHandler<
             _id: blogPostId,
             ...req.body,
             blogImage: env.SERVER_URL + blogImageDestinationPath,
-            author: authenticatedUser._id
+            author: authenticatedUser._id,
         })
 
         res.status(201).json(newBlogPost)

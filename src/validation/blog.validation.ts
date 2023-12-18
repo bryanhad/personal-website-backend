@@ -3,7 +3,8 @@ import { imageFileSchema, objectIdSchema } from '../utils/validation'
 
 export const getBlogPostRequestSchema = yup.object({
     query: yup.object({
-        authorId: objectIdSchema //check whether the authorId in the query is an instance of objectId (if passed that is)
+        authorId: objectIdSchema, //check whether the authorId in the query is an instance of objectId (if passed that is)
+        page: yup.string() //url param is always a string
     })
 })
 

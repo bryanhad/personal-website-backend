@@ -1,6 +1,6 @@
 import { InferSchemaType, Schema, model } from 'mongoose'
 
-const blogPostSchema = new Schema(
+const BlogPostModel = new Schema(
     {
         slug: {
             type: String,
@@ -22,6 +22,6 @@ const blogPostSchema = new Schema(
     }
 )
 
-type BlogPost = InferSchemaType<typeof blogPostSchema> //InferSchemaType will automatically infer the type from our Schema!
+type BlogPost = InferSchemaType<typeof BlogPostModel> //InferSchemaType will automatically infer the type from our Schema!
 
-export default model<BlogPost>('BlogPost', blogPostSchema) //mongodb will automatically pluralize the naming from this model!
+export default model<BlogPost>('BlogPost', BlogPostModel) //mongodb will automatically pluralize the naming from this model!
