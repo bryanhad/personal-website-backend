@@ -1,5 +1,6 @@
 import express from 'express'
 import * as BlogPostsController from '../controllers/blog.controller' // we import form * so that we can access all the individual exports in a single place! neat.
+import * as CommentsController from '../controllers/comment.controller' // we import form * so that we can access all the individual exports in a single place! neat.
 import { imageUpload } from '../middlewares/image-upload'
 import mustAuthenticated from '../middlewares/mustAuthenticated'
 import validateRequestSchema from '../middlewares/validateRequestSchema'
@@ -9,7 +10,14 @@ import {
     getBlogPostsRequestSchema,
     updateBlogRequestSchema,
 } from '../validation/blog.validation'
-import { createBlogRateLimit, updateBlogRateLimit } from '../middlewares/rate-limit'
+import {
+    createBlogRateLimit,
+    updateBlogRateLimit,
+} from '../middlewares/rate-limit'
+import {
+    createCommentRequestSchema,
+    getCommentsRequestSchema,
+} from '../validation/comments.validation'
 
 const router = express.Router()
 
@@ -35,7 +43,7 @@ router.get('/post/:slug', BlogPostsController.getBlogPostBySlug)
 router.patch(
     '/:blogId',
     mustAuthenticated,
-    updateBlogRateLimit,//rate limit
+    updateBlogRateLimit, //rate limit
     imageUpload.single('blogImage'),
     validateRequestSchema(updateBlogRequestSchema),
     BlogPostsController.updateBlog
@@ -46,6 +54,19 @@ router.delete(
     mustAuthenticated,
     validateRequestSchema(deleteBlogSchema),
     BlogPostsController.deleteBlog
+)
+
+router.get(
+    '/:blogId/comments',
+    validateRequestSchema(getCommentsRequestSchema),
+    CommentsController.getCommentsFromBlogId
+)
+
+router.post(
+    '/:blogId/comments',
+    mustAuthenticated,
+    validateRequestSchema(createCommentRequestSchema),
+    CommentsController.createComment
 )
 
 export default router
