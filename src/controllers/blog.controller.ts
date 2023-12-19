@@ -12,6 +12,7 @@ import {
 } from '../validation/blog.validation'
 import blogPostModel from '../models/blog-post.model'
 import fs from 'fs'
+import axios from 'axios'
 
 export const getBlogPosts: RequestHandler<
     unknown,
@@ -188,6 +189,9 @@ export const updateBlog: RequestHandler<
 
         await blogToBeEdited.save()
 
+        await axios.get(env.WEBSITE_URL + `/api/revalidate-blog/${slug}?secret=${env.POST_REVALIDATION_KEY}`) //this revalidation makes so that the next's cache will be updated! and it just like the user (author who updates) helps to update the build cache to be the updated version! 
+        // so when other user's visit the page, they will be served the updated cache!
+
         res.sendStatus(200)
     } catch (err) {
         next(err)
@@ -225,6 +229,8 @@ export const deleteBlog: RequestHandler<DeleteBlogParams> = async (
         }
 
         await toBeDeletedBlog.deleteOne()
+
+        await axios.get(env.WEBSITE_URL + `/api/revalidate-blog/${toBeDeletedBlog.slug}?secret=${env.POST_REVALIDATION_KEY}`)
 
         res.sendStatus(204) //204 for resource has successfully been deleted
     } catch (err) {
