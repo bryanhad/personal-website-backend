@@ -198,16 +198,14 @@ export const resetPassword: RequestHandler<
         await destroyAllActiveSessionForUser(existingUser._id.toString()) //deletes all user's session!
 
         const newHashedPassword = await bcrypt.hash(newRawPassword, 10)
-        console.log(existingUser, '<<<<< EXISTING USER BEFORE ADDED PASSWORD >>>>>')
 
-        existingUser.password = newHashedPassword
-        console.log(existingUser, '<<<<< EXISTING USER AFTER ADDED PASSWORD >>>>>')
+        existingUser.password = newHashedPassword // this operation essentially append a new key to our user instance! even though our initial fetch doesn't fetch the password like our model configuration. we must delete the password later to avoid sending the password back to the client..
+        // even though the password is hashed.. it's just best practice i think.. it's a sensitive data
 
         await existingUser.save()
-        console.log(existingUser, '<<<<< EXISTING USER AFTER SAVING >>>>>')
 
-        const updatedUser = existingUser.toObject()
-        delete updatedUser.password
+        const updatedUser = existingUser.toObject() //make updatedUser to POJO (Plain ol JS Object) so we can use the delete operator
+        delete updatedUser.password //delete it
 
         req.logIn(updatedUser, (err) => { //
             if (err) throw err
