@@ -48,3 +48,13 @@ export const verificationCodeRequestSchema = yup.object({
 export type RequestVerificationCodeBody = yup.InferType<
     typeof verificationCodeRequestSchema
 >['body']
+
+export const resetPasswordSchema = yup.object({
+    body: yup.object({
+        email: emailSchema.required(),
+        password: passwordSchema.required(),
+        verificationCode: yup.string().required(),
+    })
+})
+
+export type ResetPassowrdBody = yup.InferType<typeof resetPasswordSchema>['body']

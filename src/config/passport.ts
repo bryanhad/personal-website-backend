@@ -11,7 +11,8 @@ import env from '../env'
 //passport is a authentication middleware! basically for login!
 
 passport.serializeUser((user, cb) => {
-    //after the user logged in successfuly, the user returned from the localStrategy below would be passed to this function! where now, we can decide what data should be stored in the session! we can do that via the cb function!
+    //after the user logged in successfuly, the user returned from our localStrategy OR the req.login 
+    // would be passed to this function! where now, we can decide what data should be stored in the session! we can do that via the cb function!
     //basically this func purpose is to handle writing the user's session into our database
     cb(null, user._id)
 })

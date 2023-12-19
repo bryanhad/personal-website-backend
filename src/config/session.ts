@@ -1,7 +1,7 @@
 import { SessionOptions } from 'express-session'
 import env from '../env'
 import MongoStore from 'connect-mongo'
-
+import crypto from 'crypto'
 
 const sessionConfig: SessionOptions = {
     secret: env.SESSION_SECRET,
@@ -14,6 +14,15 @@ const sessionConfig: SessionOptions = {
     store: MongoStore.create({
         mongoUrl: env.MONGO_CONNECTION_STRING
     }),
+    genid(req) { //generate our own session id!
+        const userId = req.user?._id //get the user's Id from passport
+        const randomId = crypto.randomUUID() //generate radom string ID
+        if (userId) {
+            return `${userId}-${randomId}`
+        } else {
+            return randomId
+        }
+    }
 }
 
 export default sessionConfig

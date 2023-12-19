@@ -5,6 +5,7 @@ import bcrypt from 'bcrypt'
 import assertIsDefined from '../utils/assertIsDefined'
 import {
     RequestVerificationCodeBody,
+    ResetPassowrdBody,
     signUpBody,
     updateUserBody,
 } from '../validation/users.validation'
@@ -13,6 +14,8 @@ import env from '../env'
 import crypto from 'crypto'
 import emailVerificationTokenModel from '../models/email-verification-token.model'
 import * as brevoEmail from '../utils/brevoEmail'
+import passwordResetTokenModel from '../models/password-reset-token.model'
+import { destroyAllActiveSessionForUser } from '../utils/auth'
 
 export const getAuthenticatedUser: RequestHandler = async (req, res, next) => {
     const authenticatedUser = req.user
@@ -75,7 +78,7 @@ export const signUp: RequestHandler<
             .exec()
 
         if (!emailVerificationToken) {
-            throw createHttpError(400, 'Verification code incorect or expired.')
+            throw createHttpError(400, 'Verification code is incorect or expired.')
         } else {
             await emailVerificationToken.deleteOne() //if matches, we can just delete the entry! no need to keep 'em
         }
@@ -93,7 +96,7 @@ export const signUp: RequestHandler<
         delete newUser.password
 
         req.logIn(newUser, (err) => {
-            //login would pass the first argument, which is a user objet that has a _id key on it, and would be passed to the passport's deserializeUser! it would get the session from the db, and append an Id key to the
+            //login would pass the first argument, which is a user objet that has a _id key on it, and would be passed to the passport's serializeUser! it would get the session from the db, and append an Id key to the
             if (err) throw err
             res.status(201).json(newUser)
         }) //this req.login function is added by passport!
@@ -127,10 +130,89 @@ export const giveEmailVerificationCode: RequestHandler<
         // we shouldn't use math.random for creating these random strings.. it's safer to use packages like these
 
         await emailVerificationTokenModel.create({ email, verificationCode }) //create a new entry / document to the databse of the email who request's the verification code, and the verification code it self.. we need this cuz we want to match the exact same verification code with what the user received when he reqests the email verification..
-
+        //
         await brevoEmail.sendVerificationCode(email, verificationCode) // we send the email verification with brevo!
-        console.log('email sent')
         res.sendStatus(200)
+    } catch (err) {
+        next(err)
+    }
+}
+
+export const givePasswordVerificationCode: RequestHandler<
+    unknown,
+    unknown,
+    RequestVerificationCodeBody,
+    unknown
+> = async (req, res, next) => {
+    const { email } = req.body
+    try {
+        const user = await userModel
+            .findOne({ email })
+            .collation({ locale: 'en', strength: 2 }) //this would find the email even with a different letter casing!
+            .exec()
+
+        if (!user) {
+            throw createHttpError(
+                404,
+                `A user with this email doens't exist. Please sign up instead.`
+            )
+        }
+        const verificationCode = crypto.randomInt(100000, 999999).toString()
+        await passwordResetTokenModel.create({ email, verificationCode })
+
+        await brevoEmail.sendPasswordResetCode(email, verificationCode)
+        res.sendStatus(200)
+    } catch (err) {
+        next(err)
+    }
+}
+
+export const resetPassword: RequestHandler<
+    unknown,
+    unknown,
+    ResetPassowrdBody,
+    unknown
+> = async (req, res, next) => {
+    const { email, password: newRawPassword, verificationCode } = req.body
+    try {
+        const existingUser = await userModel
+            .findOne({ email })
+            .select('+email') // what is the purpose of manually selecting the email field here??
+            .collation({ locale: 'en', strength: 2 })
+            .exec()
+
+        if (!existingUser) {
+            throw createHttpError(404, 'User not found')
+        }
+        const passwordResetToken = await passwordResetTokenModel.findOne({
+            verificationCode,
+            email,
+        })
+
+        if (!passwordResetToken) {
+            throw createHttpError(400, 'Verification code is incorect or expired.')
+        } else {
+            await passwordResetToken.deleteOne() //if matches, we can just delete the entry! no need to keep 'em
+        }
+
+        await destroyAllActiveSessionForUser(existingUser._id.toString()) //deletes all user's session!
+
+        const newHashedPassword = await bcrypt.hash(newRawPassword, 10)
+        console.log(existingUser, '<<<<< EXISTING USER BEFORE ADDED PASSWORD >>>>>')
+
+        existingUser.password = newHashedPassword
+        console.log(existingUser, '<<<<< EXISTING USER AFTER ADDED PASSWORD >>>>>')
+
+        await existingUser.save()
+        console.log(existingUser, '<<<<< EXISTING USER AFTER SAVING >>>>>')
+
+        const updatedUser = existingUser.toObject()
+        delete updatedUser.password
+
+        req.logIn(updatedUser, (err) => { //
+            if (err) throw err
+            res.status(200).json(updatedUser)
+        })
     } catch (err) {
         next(err)
     }

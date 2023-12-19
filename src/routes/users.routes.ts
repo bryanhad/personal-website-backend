@@ -7,6 +7,7 @@ import {
     verificationCodeRequestSchema,
     signUpRequestSchema,
     updateUserRequestSchema,
+    resetPasswordSchema,
 } from '../validation/users.validation'
 import { profilePicUpload } from '../middlewares/image-upload'
 import env from '../env'
@@ -25,6 +26,10 @@ router.post(
 )
 
 router.post('/verification-code', validateRequestSchema(verificationCodeRequestSchema), UsersController.giveEmailVerificationCode)
+
+router.post('/reset-password-code', validateRequestSchema(verificationCodeRequestSchema), UsersController.givePasswordVerificationCode)
+
+router.post('/reset-password', validateRequestSchema(resetPasswordSchema), UsersController.resetPassword)
 
 // passport.authenticate('local') would execute our localStrategy in our config
 router.post('/login', passport.authenticate('local'), (req, res) =>
