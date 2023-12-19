@@ -4,6 +4,7 @@ import passport from 'passport'
 import mustAuthenticated from '../middlewares/mustAuthenticated'
 import validateRequestSchema from '../middlewares/validateRequestSchema'
 import {
+    verificationCodeRequestSchema,
     signUpRequestSchema,
     updateUserRequestSchema,
 } from '../validation/users.validation'
@@ -22,6 +23,8 @@ router.post(
     validateRequestSchema(signUpRequestSchema),
     UsersController.signUp
 )
+
+router.post('/verification-code', validateRequestSchema(verificationCodeRequestSchema), UsersController.giveEmailVerificationCode)
 
 // passport.authenticate('local') would execute our localStrategy in our config
 router.post('/login', passport.authenticate('local'), (req, res) =>

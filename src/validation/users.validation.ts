@@ -13,12 +13,12 @@ const passwordSchema = yup
     .matches(/^(?!.* )/)
     .min(8)
 
-
 export const signUpRequestSchema = yup.object({
     body: yup.object({
         username: usernameSchema.required(),
         email: emailSchema.required(),
         password: passwordSchema.required(),
+        verificationCode: yup.string().required(), //we add a new field that is required for our signUp endpoint!
     }),
 })
 
@@ -27,10 +27,24 @@ export type signUpBody = yup.InferType<typeof signUpRequestSchema>['body'] //thi
 export const updateUserRequestSchema = yup.object({
     body: yup.object({
         username: usernameSchema,
-        displayName: yup.string().max(20, 'Display name cannot exceed 20 characters'),
+        displayName: yup
+            .string()
+            .max(20, 'Display name cannot exceed 20 characters'),
         about: yup.string().max(160, 'About cannot exceed 160 characters'),
     }),
     file: imageFileSchema,
 })
 
-export type updateUserBody = yup.InferType<typeof updateUserRequestSchema>['body'] //this only makes sure that we only extract the body!
+export type updateUserBody = yup.InferType<
+    typeof updateUserRequestSchema
+>['body'] //this only makes sure that we only extract the body!
+
+export const verificationCodeRequestSchema = yup.object({
+    body: yup.object({
+        email: emailSchema.required(),
+    }),
+})
+
+export type RequestVerificationCodeBody = yup.InferType<
+    typeof verificationCodeRequestSchema
+>['body']

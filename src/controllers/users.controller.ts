@@ -3,9 +3,16 @@ import userModel from '../models/user.model'
 import createHttpError from 'http-errors'
 import bcrypt from 'bcrypt'
 import assertIsDefined from '../utils/assertIsDefined'
-import { signUpBody, updateUserBody } from '../validation/users.validation'
+import {
+    RequestVerificationCodeBody,
+    signUpBody,
+    updateUserBody,
+} from '../validation/users.validation'
 import sharp from 'sharp'
 import env from '../env'
+import crypto from 'crypto'
+import emailVerificationTokenModel from '../models/email-verification-token.model'
+import * as brevoEmail from '../utils/brevoEmail'
 
 export const getAuthenticatedUser: RequestHandler = async (req, res, next) => {
     const authenticatedUser = req.user
@@ -46,7 +53,12 @@ export const signUp: RequestHandler<
     signUpBody,
     unknown
 > = async (req, res, next) => {
-    const { username, email, password: rawPassword } = req.body
+    const {
+        username,
+        email,
+        password: rawPassword,
+        verificationCode,
+    } = req.body
 
     try {
         const usernameExists = await userModel
@@ -56,6 +68,16 @@ export const signUp: RequestHandler<
 
         if (usernameExists) {
             throw createHttpError(409, 'Username already taken')
+        }
+
+        const emailVerificationToken = await emailVerificationTokenModel
+            .findOne({ email, verificationCode }) // find the entry in the db where the email and verification is exactly the same
+            .exec()
+
+        if (!emailVerificationToken) {
+            throw createHttpError(400, 'Verification code incorect or expired.')
+        } else {
+            await emailVerificationToken.deleteOne() //if matches, we can just delete the entry! no need to keep 'em
         }
 
         const hashedPassword = await bcrypt.hash(rawPassword, 10)
@@ -80,6 +102,40 @@ export const signUp: RequestHandler<
     }
 }
 
+export const giveEmailVerificationCode: RequestHandler<
+    unknown,
+    unknown,
+    RequestVerificationCodeBody,
+    unknown
+> = async (req, res, next) => {
+    const { email } = req.body
+
+    try {
+        const emailExists = await userModel
+            .findOne({ email })
+            .collation({ locale: 'en', strength: 2 }) //this would find the email even with a different letter casing!
+            .exec()
+
+        if (emailExists) {
+            throw createHttpError(
+                409,
+                'A user with this email address already exists. Maybe you want to login?'
+            )
+        }
+
+        const verificationCode = crypto.randomInt(100000, 999999).toString() //this is native to nodejs.. it is used to create secure values, like random numbers for example. The function randomInt expects a between number, so if we want a random number that is 6 digits, we can pass a minimum number of 100_000 and 999_999 which is the minimum and maximum of 6 digits number
+        // we shouldn't use math.random for creating these random strings.. it's safer to use packages like these
+
+        await emailVerificationTokenModel.create({ email, verificationCode }) //create a new entry / document to the databse of the email who request's the verification code, and the verification code it self.. we need this cuz we want to match the exact same verification code with what the user received when he reqests the email verification..
+
+        await brevoEmail.sendVerificationCode(email, verificationCode) // we send the email verification with brevo!
+        console.log('email sent')
+        res.sendStatus(200)
+    } catch (err) {
+        next(err)
+    }
+}
+
 export const logOut: RequestHandler = (req, res) => {
     req.logOut((err) => {
         //this func is from passport
@@ -99,7 +155,7 @@ export const updateUser: RequestHandler<
     unknown
 > = async (req, res, next) => {
     const profilePic = req.file
-    const {username, displayName, about} = req.body
+    const { username, displayName, about } = req.body
     const authenticatedUser = req.user
 
     try {
@@ -130,17 +186,30 @@ export const updateUser: RequestHandler<
                 .toFile('./' + profilePicDestinationPath) //where we want to save the image to
         }
 
-        const updatedUser = await userModel.findByIdAndUpdate(authenticatedUser._id, {
-            $set: { //with the $set, we tell mongoose that JUST UPDATE WHAT WE SENT HERE! if we dont use the $set, we will lose the user's data! not bueno :(
-                ...(username && {username}), //this is how u put a key value pair to a JS object conditionally! 
-                //basically says if the username is truthy, add username:username
-                ...(displayName && {displayName}),
-                ...(about && {about}),
-                ...(profilePic && {profilePicUrl: env.SERVER_URL + profilePicDestinationPath + '?lastUpdated=' + Date.now()}), //now this is a cool trick! before, I faced a problem where the browser doesn't refresh the image even though the image is updated! why? cuz the image name is 100% the same! I still want to keep the name of the saved image same with the authenticatedUserId.png as the name, cuz it allows us to overwrite the previous user's profile pic.. but how can we tell the browser that the image is now updated?!
+        const updatedUser = await userModel
+            .findByIdAndUpdate(
+                authenticatedUser._id,
+                {
+                    $set: {
+                        //with the $set, we tell mongoose that JUST UPDATE WHAT WE SENT HERE! if we dont use the $set, we will lose the user's data! not bueno :(
+                        ...(username && { username }), //this is how u put a key value pair to a JS object conditionally!
+                        //basically says if the username is truthy, add username:username
+                        ...(displayName && { displayName }),
+                        ...(about && { about }),
+                        ...(profilePic && {
+                            profilePicUrl:
+                                env.SERVER_URL +
+                                profilePicDestinationPath +
+                                '?lastUpdated=' +
+                                Date.now(),
+                        }), //now this is a cool trick! before, I faced a problem where the browser doesn't refresh the image even though the image is updated! why? cuz the image name is 100% the same! I still want to keep the name of the saved image same with the authenticatedUserId.png as the name, cuz it allows us to overwrite the previous user's profile pic.. but how can we tell the browser that the image is now updated?!
 
-                // so the solution is to append a query to the url, it doesn't really matter what u put, just be sure that every upload will result the query to have different value! here, I use Date.now()..
-            }
-        }, { new: true }).exec() //the configuration of {new:true} just tells the findByIdAndUpdate to return the user's state after the update! cuz by default, it returns the user's state before the update lel :D
+                        // so the solution is to append a query to the url, it doesn't really matter what u put, just be sure that every upload will result the query to have different value! here, I use Date.now()..
+                    },
+                },
+                { new: true }
+            )
+            .exec() //the configuration of {new:true} just tells the findByIdAndUpdate to return the user's state after the update! cuz by default, it returns the user's state before the update lel :D
 
         res.status(200).json(updatedUser)
     } catch (err) {
