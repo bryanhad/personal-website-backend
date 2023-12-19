@@ -9,6 +9,7 @@ import {
     getBlogPostsRequestSchema,
     updateBlogRequestSchema,
 } from '../validation/blog.validation'
+import { createBlogRateLimit, updateBlogRateLimit } from '../middlewares/rate-limit'
 
 const router = express.Router()
 
@@ -21,6 +22,7 @@ router.get(
 router.post(
     '/',
     mustAuthenticated,
+    createBlogRateLimit, //rate limit
     imageUpload.single('blogImage'), // the .single('string') represents a single prop in the request body with the string as the req.body's key that will be looked into. So our frontend has to send a req.body that has an 'blogImage' key in it.,
     validateRequestSchema(createBlogRequestSchema), // we validate the wole request object with yup
     BlogPostsController.createBlogPost
@@ -33,6 +35,7 @@ router.get('/post/:slug', BlogPostsController.getBlogPostBySlug)
 router.patch(
     '/:blogId',
     mustAuthenticated,
+    updateBlogRateLimit,//rate limit
     imageUpload.single('blogImage'),
     validateRequestSchema(updateBlogRequestSchema),
     BlogPostsController.updateBlog
