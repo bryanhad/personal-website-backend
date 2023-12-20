@@ -37,3 +37,11 @@ export const updateBlogRateLimit = rateLimit({ // we will give more to the updat
     legacyHeaders: false,
     skipFailedRequests: true
 })
+
+export const uploadImageRateLimit = rateLimit({ 
+    windowMs: 1000 * 60 * 60, //1 hour
+    max: 30,
+    standardHeaders: true,
+    legacyHeaders: false,
+    skipFailedRequests: true
+})

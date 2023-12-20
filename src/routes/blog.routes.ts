@@ -1,7 +1,7 @@
 import express from 'express'
 import * as BlogPostsController from '../controllers/blog.controller' // we import form * so that we can access all the individual exports in a single place! neat.
 import * as CommentsController from '../controllers/comment.controller' // we import form * so that we can access all the individual exports in a single place! neat.
-import { imageUpload } from '../middlewares/image-upload'
+import { imageUpload, inBlogImageUpload } from '../middlewares/image-upload'
 import mustAuthenticated from '../middlewares/mustAuthenticated'
 import validateRequestSchema from '../middlewares/validateRequestSchema'
 import {
@@ -9,10 +9,12 @@ import {
     deleteBlogSchema,
     getBlogPostsRequestSchema,
     updateBlogRequestSchema,
+    uploadInBlogImagesRequestSchema,
 } from '../validation/blog.validation'
 import {
     createBlogRateLimit,
     updateBlogRateLimit,
+    uploadImageRateLimit,
 } from '../middlewares/rate-limit'
 import {
     createCommentRequestSchema,
@@ -57,6 +59,15 @@ router.delete(
     mustAuthenticated,
     validateRequestSchema(deleteBlogSchema),
     BlogPostsController.deleteBlog
+)
+
+router.post(
+    '/images',
+    mustAuthenticated,
+    uploadImageRateLimit,
+    inBlogImageUpload.single('inBlogImage'),
+    validateRequestSchema(uploadInBlogImagesRequestSchema),
+    BlogPostsController.uploadInBlogImage
 )
 
 router.get(

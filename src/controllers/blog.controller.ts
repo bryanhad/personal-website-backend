@@ -13,6 +13,8 @@ import {
 import blogPostModel from '../models/blog-post.model'
 import fs from 'fs'
 import axios from 'axios'
+import crypto from 'crypto'
+import path from 'path'
 
 export const getBlogPosts: RequestHandler<
     unknown,
@@ -150,9 +152,13 @@ export const updateBlog: RequestHandler<
     try {
         assertIsDefined(authenticatedUser)
 
-        const slugExists = await blogPostModel.findOne({slug}).exec()
-        if (slugExists && !slugExists._id.equals(blogId)) { //if the slug exist AND is different one from the targeted blog.. which means other blog already has the slug
-            throw createHttpError(409, 'Slug already taken. Please choose a different one')
+        const slugExists = await blogPostModel.findOne({ slug }).exec()
+        if (slugExists && !slugExists._id.equals(blogId)) {
+            //if the slug exist AND is different one from the targeted blog.. which means other blog already has the slug
+            throw createHttpError(
+                409,
+                'Slug already taken. Please choose a different one'
+            )
         }
 
         const blogToBeEdited = await blogPostModel.findById(blogId).exec()
@@ -189,7 +195,10 @@ export const updateBlog: RequestHandler<
 
         await blogToBeEdited.save()
 
-        await axios.get(env.WEBSITE_URL + `/api/revalidate-blog/${slug}?secret=${env.POST_REVALIDATION_KEY}`) //this revalidation makes so that the next's cache will be updated! and it just like the user (author who updates) helps to update the build cache to be the updated version! 
+        await axios.get(
+            env.WEBSITE_URL +
+                `/api/revalidate-blog/${slug}?secret=${env.POST_REVALIDATION_KEY}`
+        ) //this revalidation makes so that the next's cache will be updated! and it just like the user (author who updates) helps to update the build cache to be the updated version!
         // so when other user's visit the page, they will be served the updated cache!
 
         res.sendStatus(200)
@@ -230,9 +239,38 @@ export const deleteBlog: RequestHandler<DeleteBlogParams> = async (
 
         await toBeDeletedBlog.deleteOne()
 
-        await axios.get(env.WEBSITE_URL + `/api/revalidate-blog/${toBeDeletedBlog.slug}?secret=${env.POST_REVALIDATION_KEY}`)
+        await axios.get(
+            env.WEBSITE_URL +
+                `/api/revalidate-blog/${toBeDeletedBlog.slug}?secret=${env.POST_REVALIDATION_KEY}`
+        )
 
         res.sendStatus(204) //204 for resource has successfully been deleted
+    } catch (err) {
+        next(err)
+    }
+}
+
+export const uploadInBlogImage: RequestHandler = async (req, res, next) => {
+    const inBlogImage = req.file // multer automatically appends the file key to the request, but the compiler doesn't know if we actually append it, so we have to check if the value is indeed not null or not undefined.
+
+    try {
+        assertIsDefined(inBlogImage)
+
+        const fileName = crypto.randomBytes(20).toString('hex') //this will let crypto make a random string of characters, it is to avoid clashes between different files
+
+        const imageDestinationPath =
+            '/uploads/in-blog-images/' +
+            fileName +
+            path.extname(inBlogImage.originalname) //this will extract the original extension name of the file
+
+        await sharp(inBlogImage.buffer)
+            .resize(1920, undefined, {
+                //if the height is undefined, it will just match to the width and scale is without ruining the aspect ratio
+                withoutEnlargement: true, //this makes so that if the image is alraedy smaller than 1920 in terms of width, don't resize it
+            })
+            .toFile('./' + imageDestinationPath)
+
+        res.status(201).json({imageUrl: env.SERVER_URL + imageDestinationPath})
     } catch (err) {
         next(err)
     }

@@ -45,3 +45,7 @@ export const deleteBlogSchema = yup.object({
 })
 
 export type DeleteBlogParams = yup.InferType<typeof deleteBlogSchema>['params']
+
+export const uploadInBlogImagesRequestSchema = yup.object({
+    file: imageFileSchema.required('Image is required')
+})

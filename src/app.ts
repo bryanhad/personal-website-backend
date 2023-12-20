@@ -27,6 +27,7 @@ app.use(passport.authenticate('session')) //this activates passport, and on ever
 
 app.use('/uploads/blog-images', express.static('uploads/blog-images')) //this allows us to serve our images in the 'uploads/blog-images/' through the url directly! cool!
 app.use('/uploads/profile-pictures', express.static('uploads/profile-pictures'))
+app.use('/uploads/in-blog-images', express.static('uploads/in-blog-images'))
 
 app.use('/posts', blogsRoutes)
 app.use('/users', usersRoutes)
