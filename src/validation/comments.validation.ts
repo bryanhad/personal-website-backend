@@ -15,6 +15,18 @@ export const getCommentsRequestSchema = yup.object({
 export type getCommentsParams = yup.InferType<typeof getCommentsRequestSchema>['params']
 export type getCommentsQuery = yup.InferType<typeof getCommentsRequestSchema>['query']
 
+export const getCommentRepliesRequestSchema = yup.object({
+    params: yup.object({
+        commentId: objectIdSchema.required()
+    }),
+    query: yup.object({
+        continueAfterId: objectIdSchema //this is optional, cuz at first, the blog won't have a commnet!
+    })
+})
+
+export type getCommentRepliesParams = yup.InferType<typeof getCommentRepliesRequestSchema>['params']
+export type getCommentRepliesQuery = yup.InferType<typeof getCommentRepliesRequestSchema>['query']
+
 export const createCommentRequestSchema = yup.object({
     body: yup.object({
         text: commentTextSchema,
@@ -30,10 +42,10 @@ export type createCommentBody = yup.InferType<typeof createCommentRequestSchema>
 
 export const updateCommentRequestSchema = yup.object({
     body: yup.object({
-        text: commentTextSchema,
+        newText: commentTextSchema,
     }),
     params: yup.object({
-        id: objectIdSchema.required()
+        commentId: objectIdSchema.required()
     })
 })
 
@@ -42,7 +54,7 @@ export type updateCommentBody = yup.InferType<typeof updateCommentRequestSchema>
 
 export const deleteCommentRequestSchema = yup.object({
     params: yup.object({
-        id: objectIdSchema.required()
+        commentId: objectIdSchema.required()
     })
 })
 

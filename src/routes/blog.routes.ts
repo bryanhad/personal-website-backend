@@ -16,7 +16,10 @@ import {
 } from '../middlewares/rate-limit'
 import {
     createCommentRequestSchema,
+    deleteCommentRequestSchema,
+    getCommentRepliesRequestSchema,
     getCommentsRequestSchema,
+    updateCommentRequestSchema,
 } from '../validation/comments.validation'
 
 const router = express.Router()
@@ -67,6 +70,26 @@ router.post(
     mustAuthenticated,
     validateRequestSchema(createCommentRequestSchema),
     CommentsController.createComment
+)
+
+router.get(
+    '/comments/:commentId/replies',
+    validateRequestSchema(getCommentRepliesRequestSchema),
+    CommentsController.getCommentReplies
+)
+
+router.patch(
+    '/comments/:commentId',
+    mustAuthenticated,
+    validateRequestSchema(updateCommentRequestSchema),
+    CommentsController.updateComment
+)
+
+router.delete(
+    '/comments/:commentId',
+    mustAuthenticated,
+    validateRequestSchema(deleteCommentRequestSchema),
+    CommentsController.deleteComment
 )
 
 export default router
