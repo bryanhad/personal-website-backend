@@ -14,7 +14,15 @@ import './config/passport' //by importing the file just like this, we can automa
 
 const app = express()
 
-app.use(morgan('dev')) // better console.logs! helps us to know where is the route that logs something..
+if (env.NODE_ENV === 'production') {
+    app.set('trust proxy', true) //this tells express that there is a proxy between the frontend and our server.. 
+    //by setting the trust proxy to true, it will make sure to pass the headers from our proxy (nginx), and use the user's IP address passed,
+    // if we didn't set the trust proxy to true, our rate limit would be spread out accross all users.. instead for each IP addresses (each user has their rate limit scope)
+    app.use(morgan('combined')) //combined gives us more info in the logs
+} else {
+    app.use(morgan('dev')) // better console.logs! helps us to know where is the route that logs something..
+}
+
 app.use(cors({ 
     origin: env.WEBSITE_URL,
     credentials: true,
